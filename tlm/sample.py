@@ -15,6 +15,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tokens", type=int, default=300)
     parser.add_argument("--temperature", type=float, default=0.9)
     parser.add_argument("--top-k", type=int, default=40)
+    parser.add_argument("--top-p", type=float, default=0.95)
+    parser.add_argument("--repetition-penalty", type=float, default=1.15)
+    parser.add_argument("--repetition-window", type=int, default=128)
     parser.add_argument("--context", type=int, default=0, help="Context cap for non-cached models.")
     parser.add_argument("--device", default="auto")
     return parser.parse_args()
@@ -54,6 +57,9 @@ def main() -> None:
         max_new_tokens=args.tokens,
         temperature=args.temperature,
         top_k=args.top_k,
+        top_p=args.top_p,
+        repetition_penalty=args.repetition_penalty,
+        repetition_window=args.repetition_window,
         context=args.context or checkpoint.get("train_args", {}).get("seq_len"),
     )
     print(codec.decode(generated))

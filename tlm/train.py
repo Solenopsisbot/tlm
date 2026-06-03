@@ -59,7 +59,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sample-tokens", type=int, default=300)
     parser.add_argument("--sample-prompt", default="ROMEO:\n")
     parser.add_argument("--temperature", type=float, default=0.8)
-    parser.add_argument("--top-k", type=int, default=20)
+    parser.add_argument("--top-k", type=int, default=80)
+    parser.add_argument("--top-p", type=float, default=0.95)
+    parser.add_argument("--repetition-penalty", type=float, default=1.15)
+    parser.add_argument("--repetition-window", type=int, default=128)
     parser.add_argument("--log-every", type=int, default=50)
     parser.add_argument("--save-every", type=int, default=500)
     parser.add_argument("--seed", type=int, default=1)
@@ -138,6 +141,9 @@ def sample_text(
     tokens: int,
     temperature: float,
     top_k: int,
+    top_p: float,
+    repetition_penalty: float,
+    repetition_window: int,
     seq_len: int,
 ) -> str:
     prompt_tokens = codec.encode(prompt)
@@ -146,6 +152,9 @@ def sample_text(
         max_new_tokens=tokens,
         temperature=temperature,
         top_k=top_k,
+        top_p=top_p,
+        repetition_penalty=repetition_penalty,
+        repetition_window=repetition_window,
         context=seq_len,
     )
     return codec.decode(generated)
@@ -326,6 +335,9 @@ def main() -> None:
                     args.sample_tokens,
                     args.temperature,
                     args.top_k,
+                    args.top_p,
+                    args.repetition_penalty,
+                    args.repetition_window,
                     args.seq_len,
                 )
             )

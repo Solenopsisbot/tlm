@@ -622,6 +622,9 @@ class TinyLanguageModel(nn.Module):
         max_new_tokens: int,
         temperature: float = 0.9,
         top_k: int = 40,
+        top_p: float = 1.0,
+        repetition_penalty: float = 1.0,
+        repetition_window: int = 128,
         context: int | None = None,
     ) -> torch.Tensor:
         if prompt.ndim != 1:
@@ -632,9 +635,25 @@ class TinyLanguageModel(nn.Module):
             raise ValueError("temperature must be positive")
 
         if self.config.architecture in {"stream", "swift", "fastconv", "conv"}:
-            return self._generate_conv_cached(prompt, max_new_tokens, temperature, top_k)
+            return self._generate_conv_cached(
+                prompt,
+                max_new_tokens,
+                temperature,
+                top_k,
+                top_p,
+                repetition_penalty,
+                repetition_window,
+            )
         if isinstance(self.recurrent, nn.GRU):
-            return self._generate_gru_cached(prompt, max_new_tokens, temperature, top_k)
+            return self._generate_gru_cached(
+                prompt,
+                max_new_tokens,
+                temperature,
+                top_k,
+                top_p,
+                repetition_penalty,
+                repetition_window,
+            )
 
         self.eval()
         device = next(self.parameters()).device
@@ -642,7 +661,14 @@ class TinyLanguageModel(nn.Module):
         for _ in range(max_new_tokens):
             current = tokens[-context:] if context and context > 0 else tokens
             logits, _ = self(current.unsqueeze(0))
-            next_token = sample_logits(logits[:, -1, :], temperature, top_k).flatten()
+            next_token = sample_logits(
+                logits[:, -1, :],
+                temperature,
+                top_k,
+                top_p,
+                repetition_penalty,
+                tokens[-repetition_window:],
+            ).flatten()
             tokens = torch.cat([tokens, next_token])
 
         return tokens.detach().cpu()
@@ -654,6 +680,9 @@ class TinyLanguageModel(nn.Module):
         max_new_tokens: int,
         temperature: float,
         top_k: int,
+        top_p: float,
+        repetition_penalty: float,
+        repetition_window: int,
     ) -> torch.Tensor:
         self.eval()
         device = next(self.parameters()).device
@@ -667,7 +696,15 @@ class TinyLanguageModel(nn.Module):
 
         assert logits is not None
         for _ in range(max_new_tokens):
-            next_token = sample_logits(logits[:, -1, :], temperature, top_k)
+            recent = torch.stack(generated[-repetition_window:])
+            next_token = sample_logits(
+                logits[:, -1, :],
+                temperature,
+                top_k,
+                top_p,
+                repetition_penalty,
+                recent,
+            )
             generated.append(next_token.flatten()[0])
             x = self.embed(next_token.flatten())
             x, cache = self.body.step(x, cache)
@@ -681,6 +718,9 @@ class TinyLanguageModel(nn.Module):
         max_new_tokens: int,
         temperature: float,
         top_k: int,
+        top_p: float,
+        repetition_penalty: float,
+        repetition_window: int,
     ) -> torch.Tensor:
         self.eval()
         device = next(self.parameters()).device
@@ -694,7 +734,15 @@ class TinyLanguageModel(nn.Module):
 
         assert logits is not None
         for _ in range(max_new_tokens):
-            next_token = sample_logits(logits[:, -1, :], temperature, top_k)
+            recent = torch.stack(generated[-repetition_window:])
+            next_token = sample_logits(
+                logits[:, -1, :],
+                temperature,
+                top_k,
+                top_p,
+                repetition_penalty,
+                recent,
+            )
             generated.append(next_token.flatten()[0])
             logits, state, conv_cache = self._gru_step(next_token.flatten(), state, conv_cache)
 
@@ -729,11 +777,35 @@ def count_parameters(model: nn.Module) -> int:
     return sum(parameter.numel() for parameter in model.parameters())
 
 
-def sample_logits(logits: torch.Tensor, temperature: float, top_k: int) -> torch.Tensor:
+def sample_logits(
+    logits: torch.Tensor,
+    temperature: float,
+    top_k: int,
+    top_p: float = 1.0,
+    repetition_penalty: float = 1.0,
+    recent_tokens: torch.Tensor | None = None,
+) -> torch.Tensor:
+    if repetition_penalty > 1.0 and recent_tokens is not None and len(recent_tokens) > 0:
+        for token in recent_tokens.unique():
+            token_id = int(token.item())
+            logits[:, token_id] = torch.where(
+                logits[:, token_id] > 0,
+                logits[:, token_id] / repetition_penalty,
+                logits[:, token_id] * repetition_penalty,
+            )
     logits = logits / temperature
     if top_k > 0:
         values, _ = torch.topk(logits, k=min(top_k, logits.shape[-1]))
         logits = logits.masked_fill(logits < values[:, [-1]], -torch.inf)
+    if top_p < 1.0:
+        sorted_logits, sorted_indices = torch.sort(logits, descending=True, dim=-1)
+        sorted_probs = F.softmax(sorted_logits, dim=-1)
+        cumulative = torch.cumsum(sorted_probs, dim=-1)
+        remove = cumulative > top_p
+        remove[:, 1:] = remove[:, :-1].clone()
+        remove[:, 0] = False
+        sorted_logits = sorted_logits.masked_fill(remove, -torch.inf)
+        logits = torch.full_like(logits, -torch.inf).scatter(-1, sorted_indices, sorted_logits)
     probs = F.softmax(logits, dim=-1)
     return torch.multinomial(probs, num_samples=1)
 

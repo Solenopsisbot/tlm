@@ -118,6 +118,32 @@ uv run python -m tlm.train \
 
 If memory allows, increase `--batch-size` to `24` or `32`.
 
+If samples collapse into repeated punctuation/markdown tokens, keep the
+checkpoint but resume with a lower LR and stronger sampling controls:
+
+```bash
+uv run python -m tlm.train \
+  --text data/base_mix.txt \
+  --out checkpoints/base_384x8.pt \
+  --resume \
+  --device mps \
+  --steps 50000 \
+  --mode bpe \
+  --tokenizer-vocab-size 8192 \
+  --architecture stream \
+  --dim 384 \
+  --layers 8 \
+  --seq-len 2048 \
+  --batch-size 16 \
+  --lr 1e-3 \
+  --min-lr 1e-4 \
+  --warmup-steps 0 \
+  --top-k 100 \
+  --top-p 0.95 \
+  --repetition-penalty 1.2 \
+  --sample-prompt "Once upon a time"
+```
+
 ## 5. General Instruction Tune
 
 ```bash
