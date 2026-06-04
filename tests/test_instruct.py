@@ -9,6 +9,7 @@ from tlm.instruct import (
     render_example,
     render_prompt,
 )
+from tlm.eval_arithmetic import extract_answer
 
 
 def test_render_example() -> None:
@@ -36,3 +37,9 @@ def test_make_and_load_arithmetic_jsonl(tmp_path) -> None:
 
     assert len(rows) == 3
     assert "Answer:" in rendered
+
+
+def test_extract_answer_prefers_first_answer_before_end() -> None:
+    response = "Add the two numbers: 9 + 1 = 10.\nAnswer: 10\n<|end|>\nAnswer: 6"
+
+    assert extract_answer(response) == 10

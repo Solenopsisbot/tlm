@@ -8,12 +8,13 @@ import torch
 
 from .curriculum import STAGES, solve
 from .data import TextCodec
-from .instruct import render_prompt
+from .instruct import END, render_prompt
 from .model import TinyLanguageModel, TinyLanguageModelConfig
 from .sample import config_from_checkpoint
 
 
 ANSWER_RE = re.compile(r"-?\d+")
+FINAL_ANSWER_RE = re.compile(r"answer\s*:\s*(-?\d+)", re.IGNORECASE)
 
 
 def parse_args() -> argparse.Namespace:
@@ -47,10 +48,14 @@ def make_problem(
 
 
 def extract_answer(text: str) -> int | None:
+    text = text.split(END, 1)[0]
+    final_match = FINAL_ANSWER_RE.search(text)
+    if final_match:
+        return int(final_match.group(1))
     matches = ANSWER_RE.findall(text)
     if not matches:
         return None
-    return int(matches[-1])
+    return int(matches[0])
 
 
 @torch.no_grad()
