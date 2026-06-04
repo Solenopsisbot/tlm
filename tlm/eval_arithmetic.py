@@ -6,6 +6,7 @@ import random
 
 import torch
 
+from .curriculum import STAGES, solve
 from .data import TextCodec
 from .instruct import render_prompt
 from .model import TinyLanguageModel, TinyLanguageModelConfig
@@ -20,6 +21,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--count", type=int, default=100)
     parser.add_argument("--max-value", type=int, default=99)
+    parser.add_argument("--stage", choices=sorted(STAGES))
+    parser.add_argument("--ops", nargs="+", choices=["+", "-", "*"])
     parser.add_argument("--tokens", type=int, default=48)
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--top-k", type=int, default=1)
@@ -28,18 +31,17 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def make_problem(rng: random.Random, max_value: int) -> tuple[str, int]:
-    op = rng.choice(["+", "-", "*"])
+def make_problem(
+    rng: random.Random,
+    max_value: int,
+    ops: list[str] | None = None,
+) -> tuple[str, int]:
+    op = rng.choice(ops or ["+", "-", "*"])
     a = rng.randint(0, max_value)
     b = rng.randint(0, max_value)
-    if op == "+":
-        answer = a + b
-    elif op == "-":
-        if b > a:
-            a, b = b, a
-        answer = a - b
-    else:
-        answer = a * b
+    if op == "-" and b > a:
+        a, b = b, a
+    answer = solve(a, op, b)
     prompt = f"Solve this arithmetic problem. Give the final answer.\n\n{a} {op} {b}"
     return prompt, answer
 
@@ -63,8 +65,15 @@ def main() -> None:
     model.eval()
 
     correct = 0
+    if args.stage:
+        stage = STAGES[args.stage]
+        ops = list(stage["ops"])
+        max_value = int(stage["max"])
+    else:
+        ops = args.ops
+        max_value = args.max_value
     for index in range(args.count):
-        problem, expected = make_problem(rng, args.max_value)
+        problem, expected = make_problem(rng, max_value, ops)
         prompt = render_prompt(problem)
         prompt_tokens = codec.encode(prompt)
         generated = model.generate(
