@@ -11,12 +11,14 @@ from .instruct import (
     BEGIN_ANSWER,
     BEGIN_ASSISTANT,
     BEGIN_CONTENT,
+    BEGIN_REFLECT,
     BEGIN_ROLE,
     BEGIN_SYSTEM,
     BEGIN_THINK,
     BEGIN_USER,
     END,
     END_ANSWER,
+    END_REFLECT,
     END_THINK,
 )
 
@@ -111,6 +113,8 @@ def build_codec(text: str, mode: TokenMode, vocab_size: int) -> TextCodec:
                 END,
                 BEGIN_THINK,
                 END_THINK,
+                BEGIN_REFLECT,
+                END_REFLECT,
                 BEGIN_ANSWER,
                 END_ANSWER,
             ],

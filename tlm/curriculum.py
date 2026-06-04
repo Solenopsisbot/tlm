@@ -6,9 +6,10 @@ import random
 from pathlib import Path
 from typing import Literal
 
-from .instruct import render_reasoned_response
+from .instruct import BEGIN_ANSWER, BEGIN_REFLECT, END_ANSWER, END_REFLECT, render_reasoned_response
 
 ReasoningStyle = Literal["direct", "column", "structured"]
+AnswerStyle = Literal["plain", "tag"]
 
 
 STAGES = {
@@ -154,11 +155,23 @@ def reasoning(a: int, op: str, b: int, answer: int, style: ReasoningStyle) -> st
     return direct_reasoning(a, op, b, answer)
 
 
+def add_reflection(reasoning_text: str, a: int, op: str, b: int, answer: int) -> str:
+    reflection = (
+        f"{BEGIN_REFLECT}\n"
+        f"I copied the problem as {a} {op} {b}, tracked the digit variables, "
+        f"and computed result = {answer} before giving the final answer.\n"
+        f"{END_REFLECT}"
+    )
+    return f"{reasoning_text}\n{reflection}"
+
+
 def make_example(
     rng: random.Random,
     stage: str,
     chain_of_thought: bool,
     reasoning_style: ReasoningStyle = "direct",
+    answer_style: AnswerStyle = "plain",
+    reflect: bool = False,
 ) -> dict[str, str]:
     spec = STAGES[stage]
     op = rng.choice(spec["ops"])
@@ -168,9 +181,15 @@ def make_example(
         a, b = b, a
     answer = solve(a, op, b)
     if chain_of_thought:
-        output = render_reasoned_response(reasoning(a, op, b, answer, reasoning_style), answer)
+        reasoning_text = reasoning(a, op, b, answer, reasoning_style)
+        if reflect:
+            reasoning_text = add_reflection(reasoning_text, a, op, b, answer)
+        output = render_reasoned_response(reasoning_text, answer, answer_style=answer_style)
     else:
-        output = f"<answer>\n{answer}\n</answer>"
+        if answer_style == "tag":
+            output = f"{BEGIN_ANSWER}\n{answer}\n{END_ANSWER}"
+        else:
+            output = str(answer)
     return {
         "instruction": f"Solve this arithmetic problem. Give the final answer.\n\n{a} {op} {b}",
         "output": output,
@@ -185,12 +204,26 @@ def write_stage(
     seed: int,
     chain_of_thought: bool,
     reasoning_style: ReasoningStyle = "direct",
+    answer_style: AnswerStyle = "plain",
+    reflect: bool = False,
 ) -> None:
     rng = random.Random(seed)
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     with Path(path).open("w", encoding="utf-8") as file:
         for _ in range(count):
-            file.write(json.dumps(make_example(rng, stage, chain_of_thought, reasoning_style)) + "\n")
+            file.write(
+                json.dumps(
+                    make_example(
+                        rng,
+                        stage,
+                        chain_of_thought,
+                        reasoning_style,
+                        answer_style,
+                        reflect,
+                    )
+                )
+                + "\n"
+            )
 
 
 def parse_args() -> argparse.Namespace:
@@ -201,12 +234,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--chain-of-thought", action="store_true")
     parser.add_argument("--reasoning-style", choices=["direct", "column", "structured"], default="direct")
+    parser.add_argument("--answer-style", choices=["plain", "tag"], default="plain")
+    parser.add_argument("--reflect", action="store_true")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    write_stage(args.out, args.stage, args.count, args.seed, args.chain_of_thought, args.reasoning_style)
+    write_stage(
+        args.out,
+        args.stage,
+        args.count,
+        args.seed,
+        args.chain_of_thought,
+        args.reasoning_style,
+        args.answer_style,
+        args.reflect,
+    )
     print(f"saved={args.out} stage={args.stage} examples={args.count}")
 
 

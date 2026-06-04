@@ -14,6 +14,8 @@ BEGIN_CONTENT = "<|content|>"
 END = "<|end|>"
 BEGIN_THINK = "<think>"
 END_THINK = "</think>"
+BEGIN_REFLECT = "<reflect>"
+END_REFLECT = "</reflect>"
 BEGIN_ANSWER = "<answer>"
 END_ANSWER = "</answer>"
 
@@ -57,11 +59,17 @@ def render_message(role: str, content: str, close: bool = True) -> str:
     return text
 
 
-def render_reasoned_response(reasoning: str, answer: str | int) -> str:
-    return (
-        f"{BEGIN_THINK}\n{str(reasoning).strip()}\n{END_THINK}\n"
-        f"{BEGIN_ANSWER}\n{answer}\n{END_ANSWER}"
-    )
+def render_reasoned_response(
+    reasoning: str,
+    answer: str | int,
+    answer_style: str = "plain",
+) -> str:
+    think = f"{BEGIN_THINK}\n{str(reasoning).strip()}\n{END_THINK}"
+    if answer_style == "tag":
+        return f"{think}\n{BEGIN_ANSWER}\n{answer}\n{END_ANSWER}"
+    if answer_style != "plain":
+        raise ValueError(f"unknown answer style: {answer_style}")
+    return f"{think}\n{answer}"
 
 
 def render_prompt(instruction: str, system: str = "") -> str:

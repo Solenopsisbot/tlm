@@ -124,10 +124,12 @@ assistant
 <|end|>
 ```
 
-Reasoning curriculum data uses `<think>...</think>` and `<answer>...</answer>`
-inside the assistant content. Sampling stops at `<|end|>` by default. For
-two-digit add/sub tasks, use `--reasoning-style structured` to include explicit
-digit bindings and reduce operand-copy mistakes.
+Reasoning curriculum data uses `<think>...</think>` followed by a plain final
+answer by default. Use `--answer-style tag` if you explicitly want
+`<answer>...</answer>`. Sampling stops at `<|end|>` by default. For two-digit
+add/sub tasks, use `--reasoning-style structured` to include explicit digit
+bindings and reduce operand-copy mistakes. Use `--reflect` to add a short
+`<reflect>...</reflect>` progress summary inside the thinking trace.
 
 Generate a synthetic arithmetic instruction set:
 

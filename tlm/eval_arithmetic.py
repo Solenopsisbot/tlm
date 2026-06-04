@@ -8,7 +8,7 @@ import torch
 
 from .curriculum import STAGES, solve
 from .data import TextCodec
-from .instruct import END, render_prompt
+from .instruct import END, END_THINK, render_prompt
 from .model import TinyLanguageModel, TinyLanguageModelConfig
 from .sample import config_from_checkpoint
 
@@ -56,6 +56,11 @@ def extract_answer(text: str) -> int | None:
     final_match = FINAL_ANSWER_RE.search(text)
     if final_match:
         return int(final_match.group(1))
+    if END_THINK in text:
+        tail = text.split(END_THINK, 1)[1]
+        matches = ANSWER_RE.findall(tail)
+        if matches:
+            return int(matches[0])
     matches = ANSWER_RE.findall(text)
     if not matches:
         return None

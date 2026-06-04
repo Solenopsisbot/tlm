@@ -33,7 +33,7 @@ def test_make_example_column_style() -> None:
         reasoning_style="column",
     )
 
-    assert "<answer>" in example["output"]
+    assert "</think>" in example["output"]
 
 
 def test_structured_add_reasoning_has_bindings() -> None:
@@ -54,3 +54,15 @@ def test_structured_sub_reasoning_has_bindings() -> None:
     assert "adjusted_ones = a_ones + 10 * borrow = 2 + 10 * 1 = 12" in text
     assert "tens_digit = adjusted_tens - b_tens = 3 - 1 = 2" in text
     assert "result = 25" in text
+
+
+def test_make_example_can_reflect() -> None:
+    example = make_example(
+        __import__("random").Random(1),
+        stage="addsub_2digit",
+        chain_of_thought=True,
+        reasoning_style="structured",
+        reflect=True,
+    )
+
+    assert "<reflect>" in example["output"]

@@ -203,10 +203,11 @@ uv run python -m tlm.eval_arithmetic \
 ```
 
 New instruction examples use the `<|role|>` / `<|content|>` message format.
-Reasoning curriculum examples use `<think>...</think>` and
-`<answer>...</answer>` inside assistant content. For two-digit add/sub, prefer
-`--reasoning-style structured`; it repeats variable bindings like `a_ones`,
-`b_ones`, `borrow`, and `result` to improve copy fidelity. Sampling and eval
+Reasoning curriculum examples use `<think>...</think>` followed by a plain final
+answer by default. For two-digit add/sub, prefer `--reasoning-style structured`;
+it repeats variable bindings like `a_ones`, `b_ones`, `borrow`, and `result` to
+improve copy fidelity. Add `--reflect` to include a short
+`<reflect>...</reflect>` progress summary inside thinking. Sampling and eval
 stop at `<|end|>` by default, so interactive generations should not continue
 into the next training example.
 
