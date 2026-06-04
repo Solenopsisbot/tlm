@@ -10,6 +10,10 @@ BEGIN_USER = "<|user|>"
 BEGIN_ASSISTANT = "<|assistant|>"
 BEGIN_SYSTEM = "<|system|>"
 END = "<|end|>"
+BEGIN_THINK = "<think>"
+END_THINK = "</think>"
+BEGIN_ANSWER = "<answer>"
+END_ANSWER = "</answer>"
 
 
 def render_example(example: dict[str, Any]) -> str:
@@ -42,6 +46,13 @@ def render_example(example: dict[str, Any]) -> str:
     parts.append(f"{BEGIN_USER}\n{instruction}\n{END}")
     parts.append(f"{BEGIN_ASSISTANT}\n{response}\n{END}")
     return "\n".join(parts) + "\n"
+
+
+def render_reasoned_response(reasoning: str, answer: str | int) -> str:
+    return (
+        f"{BEGIN_THINK}\n{str(reasoning).strip()}\n{END_THINK}\n"
+        f"{BEGIN_ANSWER}\n{answer}\n{END_ANSWER}"
+    )
 
 
 def render_prompt(instruction: str, system: str = "") -> str:

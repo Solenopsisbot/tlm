@@ -6,6 +6,8 @@ import random
 from pathlib import Path
 from typing import Literal
 
+from .instruct import render_reasoned_response
+
 ReasoningStyle = Literal["direct", "column"]
 
 
@@ -109,9 +111,9 @@ def make_example(
         a, b = b, a
     answer = solve(a, op, b)
     if chain_of_thought:
-        output = f"{reasoning(a, op, b, answer, reasoning_style)}\nAnswer: {answer}"
+        output = render_reasoned_response(reasoning(a, op, b, answer, reasoning_style), answer)
     else:
-        output = f"Answer: {answer}"
+        output = f"<answer>\n{answer}\n</answer>"
     return {
         "instruction": f"Solve this arithmetic problem. Give the final answer.\n\n{a} {op} {b}",
         "output": output,

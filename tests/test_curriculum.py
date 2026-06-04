@@ -27,4 +27,4 @@ def test_make_example_column_style() -> None:
         reasoning_style="column",
     )
 
-    assert "Answer:" in example["output"]
+    assert "<answer>" in example["output"]

@@ -625,6 +625,7 @@ class TinyLanguageModel(nn.Module):
         top_p: float = 1.0,
         repetition_penalty: float = 1.0,
         repetition_window: int = 128,
+        stop_sequences: list[torch.Tensor] | None = None,
         context: int | None = None,
     ) -> torch.Tensor:
         if prompt.ndim != 1:
@@ -643,6 +644,7 @@ class TinyLanguageModel(nn.Module):
                 top_p,
                 repetition_penalty,
                 repetition_window,
+                stop_sequences,
             )
         if isinstance(self.recurrent, nn.GRU):
             return self._generate_gru_cached(
@@ -653,6 +655,7 @@ class TinyLanguageModel(nn.Module):
                 top_p,
                 repetition_penalty,
                 repetition_window,
+                stop_sequences,
             )
 
         self.eval()
@@ -670,6 +673,8 @@ class TinyLanguageModel(nn.Module):
                 tokens[-repetition_window:],
             ).flatten()
             tokens = torch.cat([tokens, next_token])
+            if should_stop(tokens, stop_sequences):
+                break
 
         return tokens.detach().cpu()
 
@@ -683,6 +688,7 @@ class TinyLanguageModel(nn.Module):
         top_p: float,
         repetition_penalty: float,
         repetition_window: int,
+        stop_sequences: list[torch.Tensor] | None,
     ) -> torch.Tensor:
         self.eval()
         device = next(self.parameters()).device
@@ -706,6 +712,8 @@ class TinyLanguageModel(nn.Module):
                 recent,
             )
             generated.append(next_token.flatten()[0])
+            if should_stop_list(generated, stop_sequences):
+                break
             x = self.embed(next_token.flatten())
             x, cache = self.body.step(x, cache)
             logits = self.head(self.out_norm(x)).unsqueeze(1)
@@ -721,6 +729,7 @@ class TinyLanguageModel(nn.Module):
         top_p: float,
         repetition_penalty: float,
         repetition_window: int,
+        stop_sequences: list[torch.Tensor] | None,
     ) -> torch.Tensor:
         self.eval()
         device = next(self.parameters()).device
@@ -744,6 +753,8 @@ class TinyLanguageModel(nn.Module):
                 recent,
             )
             generated.append(next_token.flatten()[0])
+            if should_stop_list(generated, stop_sequences):
+                break
             logits, state, conv_cache = self._gru_step(next_token.flatten(), state, conv_cache)
 
         return torch.stack(generated).detach().cpu()
@@ -812,3 +823,22 @@ def sample_logits(
 
 def positive_features(x: torch.Tensor) -> torch.Tensor:
     return F.elu(x) + 1.0
+
+
+def should_stop(tokens: torch.Tensor, stop_sequences: list[torch.Tensor] | None) -> bool:
+    if not stop_sequences:
+        return False
+    for stop in stop_sequences:
+        stop = stop.to(tokens.device)
+        if len(tokens) >= len(stop) and torch.equal(tokens[-len(stop) :], stop):
+            return True
+    return False
+
+
+def should_stop_list(tokens: list[torch.Tensor], stop_sequences: list[torch.Tensor] | None) -> bool:
+    if not stop_sequences:
+        return False
+    if not tokens:
+        return False
+    stacked = torch.stack(tokens)
+    return should_stop(stacked, stop_sequences)

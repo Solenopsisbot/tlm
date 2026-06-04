@@ -16,7 +16,7 @@ from .data import (
     sample_batch,
     split_tokens,
 )
-from .instruct import load_instruction_jsonl
+from .instruct import END, load_instruction_jsonl
 from .model import TinyLanguageModel, TinyLanguageModelConfig, count_parameters
 
 
@@ -155,6 +155,7 @@ def sample_text(
         top_p=top_p,
         repetition_penalty=repetition_penalty,
         repetition_window=repetition_window,
+        stop_sequences=[codec.encode(END)],
         context=seq_len,
     )
     return codec.decode(generated)

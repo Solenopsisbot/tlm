@@ -7,7 +7,16 @@ from typing import Literal
 import torch
 from tokenizers import Tokenizer, decoders, models, pre_tokenizers, trainers
 
-from .instruct import BEGIN_ASSISTANT, BEGIN_SYSTEM, BEGIN_USER, END
+from .instruct import (
+    BEGIN_ANSWER,
+    BEGIN_ASSISTANT,
+    BEGIN_SYSTEM,
+    BEGIN_THINK,
+    BEGIN_USER,
+    END,
+    END_ANSWER,
+    END_THINK,
+)
 
 TokenMode = Literal["byte", "char", "bpe"]
 
@@ -90,7 +99,17 @@ def build_codec(text: str, mode: TokenMode, vocab_size: int) -> TextCodec:
         trainer = trainers.BpeTrainer(
             vocab_size=vocab_size,
             min_frequency=2,
-            special_tokens=["<unk>", BEGIN_SYSTEM, BEGIN_USER, BEGIN_ASSISTANT, END],
+            special_tokens=[
+                "<unk>",
+                BEGIN_SYSTEM,
+                BEGIN_USER,
+                BEGIN_ASSISTANT,
+                END,
+                BEGIN_THINK,
+                END_THINK,
+                BEGIN_ANSWER,
+                END_ANSWER,
+            ],
             initial_alphabet=pre_tokenizers.ByteLevel.alphabet(),
         )
         tokenizer.train_from_iterator([text], trainer=trainer)

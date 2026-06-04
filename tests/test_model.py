@@ -1,6 +1,6 @@
 import torch
 
-from tlm.model import TinyLanguageModel, TinyLanguageModelConfig
+from tlm.model import TinyLanguageModel, TinyLanguageModelConfig, should_stop
 from tlm.sample import config_from_checkpoint
 
 
@@ -113,3 +113,7 @@ def test_legacy_checkpoint_config_defaults_to_rnn() -> None:
     config = config_from_checkpoint({"vocab_size": 65, "dim": 32, "layers": 1})
 
     assert config.architecture == "rnn"
+
+
+def test_generate_stops_on_stop_sequence() -> None:
+    assert should_stop(torch.tensor([1, 2, 3, 4]), [torch.tensor([3, 4])])

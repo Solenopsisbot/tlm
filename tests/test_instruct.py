@@ -4,8 +4,11 @@ from tlm.instruct import (
     BEGIN_ASSISTANT,
     BEGIN_USER,
     END,
+    BEGIN_ANSWER,
+    BEGIN_THINK,
     load_instruction_jsonl,
     make_arithmetic_jsonl,
+    render_reasoned_response,
     render_example,
     render_prompt,
 )
@@ -43,3 +46,17 @@ def test_extract_answer_prefers_first_answer_before_end() -> None:
     response = "Add the two numbers: 9 + 1 = 10.\nAnswer: 10\n<|end|>\nAnswer: 6"
 
     assert extract_answer(response) == 10
+
+
+def test_render_reasoned_response_uses_tags() -> None:
+    text = render_reasoned_response("2 + 2 = 4.", 4)
+
+    assert BEGIN_THINK in text
+    assert BEGIN_ANSWER in text
+    assert "<answer>\n4\n</answer>" in text
+
+
+def test_extract_answer_prefers_answer_tag() -> None:
+    response = "<think>\nwrong number 99\n</think>\n<answer>\n4\n</answer>"
+
+    assert extract_answer(response) == 4

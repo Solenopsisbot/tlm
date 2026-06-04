@@ -15,6 +15,7 @@ from .sample import config_from_checkpoint
 
 ANSWER_RE = re.compile(r"-?\d+")
 FINAL_ANSWER_RE = re.compile(r"answer\s*:\s*(-?\d+)", re.IGNORECASE)
+ANSWER_TAG_RE = re.compile(r"<answer>\s*(-?\d+)\s*</answer>", re.IGNORECASE)
 
 
 def parse_args() -> argparse.Namespace:
@@ -49,6 +50,9 @@ def make_problem(
 
 def extract_answer(text: str) -> int | None:
     text = text.split(END, 1)[0]
+    tag_match = ANSWER_TAG_RE.search(text)
+    if tag_match:
+        return int(tag_match.group(1))
     final_match = FINAL_ANSWER_RE.search(text)
     if final_match:
         return int(final_match.group(1))
@@ -86,6 +90,7 @@ def main() -> None:
             max_new_tokens=args.tokens,
             temperature=max(args.temperature, 1e-6),
             top_k=args.top_k,
+            stop_sequences=[codec.encode(END)],
         )
         response = codec.decode(generated[len(prompt_tokens) :])
         actual = extract_answer(response)

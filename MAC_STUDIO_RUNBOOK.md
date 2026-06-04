@@ -202,6 +202,10 @@ uv run python -m tlm.eval_arithmetic \
   --device cpu
 ```
 
+New reasoning curriculum examples use `<think>...</think>` and
+`<answer>...</answer>`. Sampling and eval stop at `<|end|>` by default, so
+interactive generations should not continue into the next training example.
+
 ## 7. Reward-Filtered RL-Style Loop
 
 Generate candidates, keep exact-match winners:

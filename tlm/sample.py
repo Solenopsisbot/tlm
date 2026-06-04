@@ -5,6 +5,7 @@ import argparse
 import torch
 
 from .data import TextCodec
+from .instruct import END
 from .model import TinyLanguageModel, TinyLanguageModelConfig
 
 
@@ -18,6 +19,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--top-p", type=float, default=0.95)
     parser.add_argument("--repetition-penalty", type=float, default=1.15)
     parser.add_argument("--repetition-window", type=int, default=128)
+    parser.add_argument("--no-stop", action="store_true")
     parser.add_argument("--context", type=int, default=0, help="Context cap for non-cached models.")
     parser.add_argument("--device", default="auto")
     return parser.parse_args()
@@ -60,6 +62,7 @@ def main() -> None:
         top_p=args.top_p,
         repetition_penalty=args.repetition_penalty,
         repetition_window=args.repetition_window,
+        stop_sequences=None if args.no_stop else [codec.encode(END)],
         context=args.context or checkpoint.get("train_args", {}).get("seq_len"),
     )
     print(codec.decode(generated))
