@@ -52,13 +52,15 @@ uv run python -m tlm.curriculum \
   --out data/reason_add_1digit.jsonl \
   --stage add_1digit \
   --count 50000 \
-  --chain-of-thought
+  --chain-of-thought \
+  --reasoning-style column
 
 uv run python -m tlm.curriculum \
   --out data/reason_addsub_2digit.jsonl \
   --stage addsub_2digit \
   --count 50000 \
-  --chain-of-thought
+  --chain-of-thought \
+  --reasoning-style column
 
 uv run python -m tlm.curriculum \
   --out data/reason_mul_1digit.jsonl \

@@ -118,25 +118,25 @@ def main() -> None:
     for index, stage in enumerate(stages, start=1):
         data_path = str(data_dir / f"{index}_{stage}.jsonl")
         ckpt_path = str(ckpt_dir / f"sft_{index}_{stage}.pt")
-        run_or_print(
-            [
-                "uv",
-                "run",
-                "python",
-                "-m",
-                "tlm.curriculum",
-                "--out",
-                data_path,
-                "--stage",
-                stage,
-                "--count",
-                str(args.examples_per_stage),
-                "--seed",
-                str(index),
-                "--chain-of-thought",
-            ],
-            args.run,
-        )
+        curriculum_cmd = [
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "tlm.curriculum",
+            "--out",
+            data_path,
+            "--stage",
+            stage,
+            "--count",
+            str(args.examples_per_stage),
+            "--seed",
+            str(index),
+            "--chain-of-thought",
+        ]
+        if stage in {"add_1digit", "addsub_2digit", "mixed_2digit"}:
+            curriculum_cmd += ["--reasoning-style", "column"]
+        run_or_print(curriculum_cmd, args.run)
         run_or_print(
             train_cmd(
                 out=ckpt_path,
