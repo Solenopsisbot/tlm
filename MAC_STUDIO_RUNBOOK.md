@@ -60,7 +60,7 @@ uv run python -m tlm.curriculum \
   --stage addsub_2digit \
   --count 50000 \
   --chain-of-thought \
-  --reasoning-style column
+  --reasoning-style structured
 
 uv run python -m tlm.curriculum \
   --out data/reason_mul_1digit.jsonl \
@@ -202,9 +202,13 @@ uv run python -m tlm.eval_arithmetic \
   --device cpu
 ```
 
-New reasoning curriculum examples use `<think>...</think>` and
-`<answer>...</answer>`. Sampling and eval stop at `<|end|>` by default, so
-interactive generations should not continue into the next training example.
+New instruction examples use the `<|role|>` / `<|content|>` message format.
+Reasoning curriculum examples use `<think>...</think>` and
+`<answer>...</answer>` inside assistant content. For two-digit add/sub, prefer
+`--reasoning-style structured`; it repeats variable bindings like `a_ones`,
+`b_ones`, `borrow`, and `result` to improve copy fidelity. Sampling and eval
+stop at `<|end|>` by default, so interactive generations should not continue
+into the next training example.
 
 ## 7. Reward-Filtered RL-Style Loop
 

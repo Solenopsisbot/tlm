@@ -9,6 +9,8 @@ from typing import Any
 BEGIN_USER = "<|user|>"
 BEGIN_ASSISTANT = "<|assistant|>"
 BEGIN_SYSTEM = "<|system|>"
+BEGIN_ROLE = "<|role|>"
+BEGIN_CONTENT = "<|content|>"
 END = "<|end|>"
 BEGIN_THINK = "<think>"
 END_THINK = "</think>"
@@ -42,10 +44,17 @@ def render_example(example: dict[str, Any]) -> str:
 
     parts = []
     if system:
-        parts.append(f"{BEGIN_SYSTEM}\n{system}\n{END}")
-    parts.append(f"{BEGIN_USER}\n{instruction}\n{END}")
-    parts.append(f"{BEGIN_ASSISTANT}\n{response}\n{END}")
+        parts.append(render_message("system", system))
+    parts.append(render_message("user", instruction))
+    parts.append(render_message("assistant", response))
     return "\n".join(parts) + "\n"
+
+
+def render_message(role: str, content: str, close: bool = True) -> str:
+    text = f"{BEGIN_ROLE}\n{role.strip()}\n{BEGIN_CONTENT}\n{content.strip()}"
+    if close:
+        text += f"\n{END}"
+    return text
 
 
 def render_reasoned_response(reasoning: str, answer: str | int) -> str:
@@ -58,9 +67,9 @@ def render_reasoned_response(reasoning: str, answer: str | int) -> str:
 def render_prompt(instruction: str, system: str = "") -> str:
     parts = []
     if system.strip():
-        parts.append(f"{BEGIN_SYSTEM}\n{system.strip()}\n{END}")
-    parts.append(f"{BEGIN_USER}\n{instruction.strip()}\n{END}")
-    parts.append(f"{BEGIN_ASSISTANT}\n")
+        parts.append(render_message("system", system))
+    parts.append(render_message("user", instruction))
+    parts.append(render_message("assistant", "", close=False))
     return "\n".join(parts)
 
 
@@ -97,7 +106,7 @@ def arithmetic_example(rng: random.Random, max_value: int, chain_of_thought: boo
         answer = a * b
         reasoning = f"{a} * {b} = {answer}."
 
-    output = f"{reasoning}\nAnswer: {answer}" if chain_of_thought else str(answer)
+    output = render_reasoned_response(reasoning, answer) if chain_of_thought else f"{BEGIN_ANSWER}\n{answer}\n{END_ANSWER}"
     return {
         "instruction": f"Solve this arithmetic problem. Give the final answer.\n\n{a} {op} {b}",
         "output": output,

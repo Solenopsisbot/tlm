@@ -10,6 +10,8 @@ from tokenizers import Tokenizer, decoders, models, pre_tokenizers, trainers
 from .instruct import (
     BEGIN_ANSWER,
     BEGIN_ASSISTANT,
+    BEGIN_CONTENT,
+    BEGIN_ROLE,
     BEGIN_SYSTEM,
     BEGIN_THINK,
     BEGIN_USER,
@@ -104,6 +106,8 @@ def build_codec(text: str, mode: TokenMode, vocab_size: int) -> TextCodec:
                 BEGIN_SYSTEM,
                 BEGIN_USER,
                 BEGIN_ASSISTANT,
+                BEGIN_ROLE,
+                BEGIN_CONTENT,
                 END,
                 BEGIN_THINK,
                 END_THINK,

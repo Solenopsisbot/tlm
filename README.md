@@ -109,9 +109,25 @@ than MPS because MPS pays heavy overhead for many tiny per-token kernels.
 
 Instruction data is JSONL with fields such as `instruction`/`output`,
 `prompt`/`response`, or `question`/`answer`.
+Instruction data renders as messages:
+
+```text
+<|role|>
+user
+<|content|>
+...
+<|end|>
+<|role|>
+assistant
+<|content|>
+...
+<|end|>
+```
+
 Reasoning curriculum data uses `<think>...</think>` and `<answer>...</answer>`
-inside the assistant response, followed by `<|end|>`. Sampling stops at
-`<|end|>` by default.
+inside the assistant content. Sampling stops at `<|end|>` by default. For
+two-digit add/sub tasks, use `--reasoning-style structured` to include explicit
+digit bindings and reduce operand-copy mistakes.
 
 Generate a synthetic arithmetic instruction set:
 

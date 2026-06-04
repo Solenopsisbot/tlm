@@ -1,10 +1,10 @@
 import json
 
 from tlm.instruct import (
-    BEGIN_ASSISTANT,
-    BEGIN_USER,
     END,
     BEGIN_ANSWER,
+    BEGIN_CONTENT,
+    BEGIN_ROLE,
     BEGIN_THINK,
     load_instruction_jsonl,
     make_arithmetic_jsonl,
@@ -18,8 +18,10 @@ from tlm.eval_arithmetic import extract_answer
 def test_render_example() -> None:
     text = render_example({"instruction": "Say hi.", "output": "Hi."})
 
-    assert BEGIN_USER in text
-    assert BEGIN_ASSISTANT in text
+    assert text.count(BEGIN_ROLE) == 2
+    assert text.count(BEGIN_CONTENT) == 2
+    assert "user" in text
+    assert "assistant" in text
     assert text.count(END) == 2
     assert "Say hi." in text
     assert "Hi." in text
@@ -28,7 +30,7 @@ def test_render_example() -> None:
 def test_render_prompt_leaves_assistant_open() -> None:
     text = render_prompt("Solve 2 + 2.")
 
-    assert text.endswith(f"{BEGIN_ASSISTANT}\n")
+    assert text.endswith(f"{BEGIN_ROLE}\nassistant\n{BEGIN_CONTENT}\n")
 
 
 def test_make_and_load_arithmetic_jsonl(tmp_path) -> None:
@@ -39,7 +41,7 @@ def test_make_and_load_arithmetic_jsonl(tmp_path) -> None:
     rendered = load_instruction_jsonl(path)
 
     assert len(rows) == 3
-    assert "Answer:" in rendered
+    assert "<answer>" in rendered
 
 
 def test_extract_answer_prefers_first_answer_before_end() -> None:

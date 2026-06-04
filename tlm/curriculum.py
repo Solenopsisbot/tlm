@@ -8,7 +8,7 @@ from typing import Literal
 
 from .instruct import render_reasoned_response
 
-ReasoningStyle = Literal["direct", "column"]
+ReasoningStyle = Literal["direct", "column", "structured"]
 
 
 STAGES = {
@@ -87,9 +87,66 @@ def column_sub_reasoning(a: int, b: int, answer: int) -> str:
     return "\n".join(lines)
 
 
+def structured_add_reasoning(a: int, b: int, answer: int) -> str:
+    a_tens, a_ones = digits2(a)
+    b_tens, b_ones = digits2(b)
+    ones_sum = a_ones + b_ones
+    ones_digit = ones_sum % 10
+    carry = ones_sum // 10
+    tens_sum = a_tens + b_tens + carry
+    return "\n".join(
+        [
+            f"problem = {a} + {b}",
+            f"a = {a}",
+            f"b = {b}",
+            f"a_tens = {a_tens}",
+            f"a_ones = {a_ones}",
+            f"b_tens = {b_tens}",
+            f"b_ones = {b_ones}",
+            f"ones_sum = a_ones + b_ones = {a_ones} + {b_ones} = {ones_sum}",
+            f"ones_digit = {ones_digit}",
+            f"carry = {carry}",
+            f"tens_sum = a_tens + b_tens + carry = {a_tens} + {b_tens} + {carry} = {tens_sum}",
+            f"result = {answer}",
+        ]
+    )
+
+
+def structured_sub_reasoning(a: int, b: int, answer: int) -> str:
+    a_tens, a_ones = digits2(a)
+    b_tens, b_ones = digits2(b)
+    borrow = int(a_ones < b_ones)
+    adjusted_ones = a_ones + 10 * borrow
+    ones_digit = adjusted_ones - b_ones
+    adjusted_tens = a_tens - borrow
+    tens_digit = adjusted_tens - b_tens
+    return "\n".join(
+        [
+            f"problem = {a} - {b}",
+            f"a = {a}",
+            f"b = {b}",
+            f"a_tens = {a_tens}",
+            f"a_ones = {a_ones}",
+            f"b_tens = {b_tens}",
+            f"b_ones = {b_ones}",
+            f"borrow = {borrow}",
+            f"adjusted_ones = a_ones + 10 * borrow = {a_ones} + 10 * {borrow} = {adjusted_ones}",
+            f"ones_digit = adjusted_ones - b_ones = {adjusted_ones} - {b_ones} = {ones_digit}",
+            f"adjusted_tens = a_tens - borrow = {a_tens} - {borrow} = {adjusted_tens}",
+            f"tens_digit = adjusted_tens - b_tens = {adjusted_tens} - {b_tens} = {tens_digit}",
+            f"result = {answer}",
+        ]
+    )
+
+
 def reasoning(a: int, op: str, b: int, answer: int, style: ReasoningStyle) -> str:
     if style == "direct":
         return direct_reasoning(a, op, b, answer)
+    if style == "structured":
+        if op == "+" and a < 100 and b < 100:
+            return structured_add_reasoning(a, b, answer)
+        if op == "-" and a < 100 and b < 100:
+            return structured_sub_reasoning(a, b, answer)
     if op == "+" and a < 100 and b < 100:
         return column_add_reasoning(a, b, answer)
     if op == "-" and a < 100 and b < 100:
@@ -143,7 +200,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--count", type=int, default=10_000)
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--chain-of-thought", action="store_true")
-    parser.add_argument("--reasoning-style", choices=["direct", "column"], default="direct")
+    parser.add_argument("--reasoning-style", choices=["direct", "column", "structured"], default="direct")
     return parser.parse_args()
 
 
